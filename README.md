@@ -38,8 +38,8 @@ cacheio is designed to be easily dumped into existing code
 
 
 the CacheStore constructor accepts an options object that can include the following params
-* cacheTTL : entry time to live in seconds (counter is reset for an entry upon read access)
-* negativeTTL : negative cache for entries in seconds
+* cacheTTL, cacheExpires : entry time to live in seconds (*TTL* counter is reset for an entry upon read access, *Expires* counter is reset for an entry upon cache update)
+* negativeTTL, negativeExpires : negative cache for entries in seconds
 * gcFreq : garbage collector frequency in seconds (GC cleans cache timedout entries)
 
 

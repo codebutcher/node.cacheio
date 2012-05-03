@@ -35,6 +35,8 @@ var cacheStore = function(options){
 	this.options = {}
 	this.options.cacheTTL = 600;// seconds
 	this.options.negativeTTL = 100;// seconds
+	this.options.cacheExpires = 6000;// seconds
+	this.options.negativeExpires = 1000;// seconds
 	this.options.gcFreq = 160;// seconds
 	for(var opt in options){
 		this.options[opt] = options[opt];
@@ -55,18 +57,33 @@ var cacheStore = function(options){
 		data.eid = eid;
 		this.cache[eid] = {data: data 
 			,ret : 'found'
+			,mtime: new Date().getTime()
 			,atime : new Date().getTime()};
 	}
 	this.setNegativeCache = function(eid){
 		this.cache[eid] = {ret : 'missing'
+			,mtime : new Date().getTime()
 			,atime : new Date().getTime()};
 	}
-	
+
+	this.isExpired = function (cacheEntry) {
+		var now = new Date().getTime();
+		switch(cacheEntry.ret){
+			case 'found':
+				if(now - cacheEntry.mtime > this.options.cacheExpires * 1000) return true;
+				if(now - cacheEntry.atime > this.options.cacheTTL * 1000) return true;
+				return false;
+			case 'missing':
+				if(now - cacheEntry.mtime > this.options.negativeExpires * 1000) return true;
+				if (now - cacheEntry.atime > this.options.negativeTTL * 1000) return true;
+				return false;
+		}
+	}
 	
 	this.cacheCleanup = function(){
 		var now = new Date().getTime();
 		for(var eid in this.cache){
-			if(now - this.cache[eid].atime > this.options.cacheTTL * 1000){
+			if(this.isExpired(this.cache[eid])){
 				delete(this.cache[eid]);
 			}
 		}
@@ -82,7 +99,7 @@ var cacheStore = function(options){
 		// cache entry is false
 		switch(this.cache[eid].ret){
 			case 'found':
-				if(new Date().getTime() - this.cache[eid].atime < this.options.cacheTTL * 1000){
+				if(!this.isExpired(this.cache[eid])){
 					// we've got the entry , update atime and return cached entry'
 					this.cache[eid].atime = new Date().getTime();
 					return this.cache[eid].data;				
@@ -94,7 +111,7 @@ var cacheStore = function(options){
 			// cache entry doesnt exists
 			case 'missing':
 				// check negative ttl
-				if(new Date().getTime() - this.cache[eid].atime < this.options.negativeTTL * 1000){
+				if(!this.isExpired(this.cache[eid])){
 					return 'missing';
 
 				} else {
